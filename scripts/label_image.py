@@ -16,7 +16,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+from  firebase import firebase
 import argparse
 import sys
 import time
@@ -132,6 +132,20 @@ if __name__ == "__main__":
   labels = load_labels(label_file)
 
   print('\nEvaluation time (1-image): {:.3f}s\n'.format(end-start))
-
+  print(labels)
+  print(results)
   for i in top_k:
     print(labels[i], results[i])
+
+  firebase = firebase.FirebaseApplication('https://plant-wahid.firebaseio.com/')
+  res = firebase.get('/',None)
+  name1 = str(labels[top_k[0]])
+  value1 = str(results[top_k[0]])
+  mylist = res
+  mylist.append({name1:value1})
+  mylist = mylist[::-1]
+  firebase.put('/','/',mylist)
+
+  firebase.post_async('/',{'abdul':'wahid'})
+
+  print(res)
