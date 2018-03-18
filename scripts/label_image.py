@@ -20,6 +20,7 @@ from  firebase import firebase
 import argparse
 import sys
 import time
+import json
 
 import numpy as np
 import tensorflow as tf
@@ -137,15 +138,36 @@ if __name__ == "__main__":
   for i in top_k:
     print(labels[i], results[i])
 
-  firebase = firebase.FirebaseApplication('https://plant-wahid.firebaseio.com/')
-  res = firebase.get('/',None)
+
+  firebase = firebase.FirebaseApplication('https://plant-wahid.firebaseio.com/plant-wahid')
+  # res = firebase.get('/',None)
   name1 = str(labels[top_k[0]])
   value1 = str(results[top_k[0]])
-  mylist = res
-  mylist.append({name1:value1})
-  mylist = mylist[::-1]
-  firebase.put('/','/',mylist)
+  # mylist = res
+  # mylist.append({name1:value1})
+  # mylist = mylist[::-1]
+  myvalue = {'name': name1,'value':value1}
+  firebase.put('/','/',myvalue)
 
-  firebase.post_async('/',{'abdul':'wahid'})
+  firebase.post_async('/',{})
 
-  print(res)
+  # print(res)
+
+
+
+
+
+  
+  # firebase = firebase.FirebaseApplication('https://plant-wahid.firebaseio.com/')
+  # res = firebase.get('/',None)
+  # name1 = str(labels[top_k[0]])
+  # value1 = str(results[top_k[0]])
+  # mylist = res
+  # mylist.append({name1:value1})
+  # mylist = mylist[::-1]
+  # firebase.put('/','/',mylist)
+
+  # firebase.post_async('/',{'abdul':'wahid'})
+
+  # print(res)
+
