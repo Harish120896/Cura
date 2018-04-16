@@ -21,7 +21,7 @@ import argparse
 import sys
 import time
 import json
-
+import os
 import numpy as np
 import tensorflow as tf
 
@@ -69,105 +69,97 @@ def load_labels(label_file):
   return label
 
 if __name__ == "__main__":
-  file_name = "tf_files/flower_photos/daisy/3475870145_685a19116d.jpg"
-  model_file = "tf_files/retrained_graph.pb"
-  label_file = "tf_files/retrained_labels.txt"
-  input_height = 224
-  input_width = 224
-  input_mean = 128
-  input_std = 128
-  input_layer = "input"
-  output_layer = "final_result"
+    file_name = "tf_files/flower_photos/daisy/3475870145_685a19116d.jpg"
+    model_file = "tf_files/retrained_graph.pb"
+    label_file = "tf_files/retrained_labels.txt"
+    input_height = 224
+    input_width = 224
+    input_mean = 128
+    input_std = 128
+    input_layer = "input"
+    output_layer = "final_result"
 
-  parser = argparse.ArgumentParser()
-  parser.add_argument("--image", help="image to be processed")
-  parser.add_argument("--graph", help="graph/model to be executed")
-  parser.add_argument("--labels", help="name of file containing labels")
-  parser.add_argument("--input_height", type=int, help="input height")
-  parser.add_argument("--input_width", type=int, help="input width")
-  parser.add_argument("--input_mean", type=int, help="input mean")
-  parser.add_argument("--input_std", type=int, help="input std")
-  parser.add_argument("--input_layer", help="name of input layer")
-  parser.add_argument("--output_layer", help="name of output layer")
-  args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--image", help="image to be processed")
+    parser.add_argument("--graph", help="graph/model to be executed")
+    parser.add_argument("--labels", help="name of file containing labels")
+    parser.add_argument("--input_height", type=int, help="input height")
+    parser.add_argument("--input_width", type=int, help="input width")
+    parser.add_argument("--input_mean", type=int, help="input mean")
+    parser.add_argument("--input_std", type=int, help="input std")
+    parser.add_argument("--input_layer", help="name of input layer")
+    parser.add_argument("--output_layer", help="name of output layer")
+    args = parser.parse_args()
 
-  if args.graph:
-    model_file = args.graph
-  if args.image:
-    file_name = args.image
-  if args.labels:
-    label_file = args.labels
-  if args.input_height:
-    input_height = args.input_height
-  if args.input_width:
-    input_width = args.input_width
-  if args.input_mean:
-    input_mean = args.input_mean
-  if args.input_std:
-    input_std = args.input_std
-  if args.input_layer:
-    input_layer = args.input_layer
-  if args.output_layer:
-    output_layer = args.output_layer
+    if args.graph:
+      model_file = args.graph
+    if args.image:
+      file_name = args.image
+    if args.labels:
+      label_file = args.labels
+    if args.input_height:
+      input_height = args.input_height
+    if args.input_width:
+      input_width = args.input_width
+    if args.input_mean:
+      input_mean = args.input_mean
+    if args.input_std:
+      input_std = args.input_std
+    if args.input_layer:
+      input_layer = args.input_layer
+    if args.output_layer:
+      output_layer = args.output_layer
 
-  graph = load_graph(model_file)
-  t = read_tensor_from_image_file(file_name,
-                                  input_height=input_height,
-                                  input_width=input_width,
-                                  input_mean=input_mean,
-                                  input_std=input_std)
+    graph = load_graph(model_file)
+    t = read_tensor_from_image_file(file_name,
+                                    input_height=input_height,
+                                    input_width=input_width,
+                                    input_mean=input_mean,
+                                    input_std=input_std)
 
-  input_name = "import/" + input_layer
-  output_name = "import/" + output_layer
-  input_operation = graph.get_operation_by_name(input_name);
-  output_operation = graph.get_operation_by_name(output_name);
+    input_name = "import/" + input_layer
+    output_name = "import/" + output_layer
+    input_operation = graph.get_operation_by_name(input_name);
+    output_operation = graph.get_operation_by_name(output_name);
+    with tf.Session(graph=graph) as sess:
+      start = time.time()
+      results = sess.run(output_operation.outputs[0],
+                        {input_operation.outputs[0]: t})
+      end=time.time()
+    results = np.squeeze(results)
+    top_k = results.argsort()[-5:][::-1]
+    labels = load_labels(label_file)
+    print('\nEvaluation time (1-image): {:.3f}s\n'.format(end-start))
+    # print(labels)
+    # print(results)
+    for i in top_k:
+      print(labels[i], results[i])
+    firebase = firebase.FirebaseApplication('https://plant-wahid.firebaseio.com/plant-wahid')
+    # res = firebase.get('/',None)
+    name1 = str(labels[top_k[0]])
+    value1 = str(results[top_k[0]])
+    # mylist = res
+    # mylist.append({name1:value1})
+    # mylist = mylist[::-1]
 
-  with tf.Session(graph=graph) as sess:
-    start = time.time()
-    results = sess.run(output_operation.outputs[0],
-                      {input_operation.outputs[0]: t})
-    end=time.time()
-  results = np.squeeze(results)
+    text_file = open("output.txt", "r")
 
-  top_k = results.argsort()[-5:][::-1]
-  labels = load_labels(label_file)
-
-  print('\nEvaluation time (1-image): {:.3f}s\n'.format(end-start))
-  print(labels)
-  print(results)
-  for i in top_k:
-    print(labels[i], results[i])
-
-
-  firebase = firebase.FirebaseApplication('https://plant-wahid.firebaseio.com/plant-wahid')
-  # res = firebase.get('/',None)
-  name1 = str(labels[top_k[0]])
-  value1 = str(results[top_k[0]])
-  # mylist = res
-  # mylist.append({name1:value1})
-  # mylist = mylist[::-1]
-  myvalue = {'name': name1,'value':value1}
-  firebase.put('/','/',myvalue)
-
-  firebase.post_async('/',{})
-
-  # print(res)
-
-
-
-
-
-  
-  # firebase = firebase.FirebaseApplication('https://plant-wahid.firebaseio.com/')
-  # res = firebase.get('/',None)
-  # name1 = str(labels[top_k[0]])
-  # value1 = str(results[top_k[0]])
-  # mylist = res
-  # mylist.append({name1:value1})
-  # mylist = mylist[::-1]
-  # firebase.put('/','/',mylist)
-
-  # firebase.post_async('/',{'abdul':'wahid'})
-
-  # print(res)
+    fileData = text_file.read()
+    print(fileData)
+    # print("heejsahdjkhsa")
+    text_file.close()
+    
+    if(fileData != name1): 
+      print("\n\nNew Entry\n\n\n") 
+      text_file = open("output.txt", "w")
+      text_file.write(name1)
+      text_file.close()
+      if(float(value1) > 0.70):
+        myvalue = {'author':'serverside', 'name': name1,'value':value1}
+        print("\n\n\n\ndisease\n\n\n\n")
+      else:
+        myvalue = {'author':'serverside', 'name': "I'm not sure about the result, I recommended a recapture",'value':value1}
+        print("\n\n\n\nsomething else\n\n\n\n")
+      firebase.put('/','/',myvalue)
+    firebase.post_async('/',{})
 
